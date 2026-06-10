@@ -1,0 +1,286 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define ARQUIVO "clientes.dat"
+
+typedef struct {
+    int numeroConta;
+    char nome[50];
+    float saldo;
+    int ativo;
+} Cliente;
+
+void cadastrarCliente() {
+
+    FILE *fp = fopen(ARQUIVO, "rb+");
+
+    if (fp == NULL) {
+        fp = fopen(ARQUIVO, "wb+");
+
+        if (fp == NULL) {
+            printf("Erro ao abrir arquivo.\n");
+            return;
+        }
+    }
+
+    Cliente c;
+    int posicao;
+
+    printf("\n=== CADASTRAR CLIENTE ===\n");
+
+    printf("Posicao do registro: ");
+    scanf("%d", &posicao);
+
+    printf("Numero da conta: ");
+    scanf("%d", &c.numeroConta);
+
+    getchar();
+
+    printf("Nome: ");
+    fgets(c.nome, sizeof(c.nome), stdin);
+    c.nome[strcspn(c.nome, "\n")] = '\0';
+
+    printf("Saldo: ");
+    scanf("%f", &c.saldo);
+
+    c.ativo = 1;
+
+    fseek(fp, posicao * sizeof(Cliente), SEEK_SET);
+
+    fwrite(&c, sizeof(Cliente), 1, fp);
+
+    printf("Cliente cadastrado com sucesso.\n");
+
+    fclose(fp);
+}
+
+void consultarCliente() {
+
+    FILE *fp = fopen(ARQUIVO, "rb");
+
+    if (fp == NULL) {
+        printf("Arquivo inexistente.\n");
+        return;
+    }
+
+    Cliente c;
+    int conta;
+    int encontrado = 0;
+
+    printf("\n=== CONSULTAR CLIENTE ===\n");
+    printf("Numero da conta: ");
+    scanf("%d", &conta);
+
+    rewind(fp);
+
+    while (fread(&c, sizeof(Cliente), 1, fp)) {
+
+        if (c.numeroConta == conta && c.ativo == 1) {
+
+            printf("\nConta: %d\n", c.numeroConta);
+            printf("Nome: %s\n", c.nome);
+            printf("Saldo: %.2f\n", c.saldo);
+
+            encontrado = 1;
+            break;
+        }
+    }
+
+    if (!encontrado) {
+        printf("Cliente nao encontrado.\n");
+    }
+
+    fclose(fp);
+}
+
+void atualizarSaldo() {
+
+    FILE *fp = fopen(ARQUIVO, "rb+");
+
+    if (fp == NULL) {
+        printf("Arquivo inexistente.\n");
+        return;
+    }
+
+    Cliente c;
+    int conta;
+    float novoSaldo;
+    int encontrado = 0;
+
+    printf("\n=== ATUALIZAR SALDO ===\n");
+
+    printf("Numero da conta: ");
+    scanf("%d", &conta);
+
+    while (fread(&c, sizeof(Cliente), 1, fp)) {
+
+        if (c.numeroConta == conta && c.ativo == 1) {
+
+            printf("Novo saldo: ");
+            scanf("%f", &novoSaldo);
+
+            c.saldo = novoSaldo;
+
+            fseek(fp, -sizeof(Cliente), SEEK_CUR);
+
+            fwrite(&c, sizeof(Cliente), 1, fp);
+
+            printf("Saldo atualizado com sucesso.\n");
+
+            encontrado = 1;
+            break;
+        }
+    }
+
+    if (!encontrado) {
+        printf("Cliente nao encontrado.\n");
+    }
+
+    fclose(fp);
+}
+
+void removerCliente() {
+
+    FILE *fp = fopen(ARQUIVO, "rb+");
+
+    if (fp == NULL) {
+        printf("Arquivo inexistente.\n");
+        return;
+    }
+
+    Cliente c;
+    int conta;
+    int encontrado = 0;
+
+    printf("\n=== ENCERRAR CONTA ===\n");
+
+    printf("Numero da conta: ");
+    scanf("%d", &conta);
+
+    while (fread(&c, sizeof(Cliente), 1, fp)) {
+
+        if (c.numeroConta == conta && c.ativo == 1) {
+
+            c.ativo = 0;
+
+            fseek(fp, -sizeof(Cliente), SEEK_CUR);
+
+            fwrite(&c, sizeof(Cliente), 1, fp);
+
+            printf("Conta encerrada com sucesso.\n");
+
+            encontrado = 1;
+            break;
+        }
+    }
+
+    if (!encontrado) {
+        printf("Cliente nao encontrado.\n");
+    }
+
+    fclose(fp);
+}
+
+void listarClientes(FILE *fp) {
+
+    Cliente c;
+
+    printf("\n=== LISTA DE CLIENTES ===\n");
+
+    while (fread(&c, sizeof(Cliente), 1, fp)) {
+
+        if (c.ativo == 1) {
+
+            printf("\nConta: %d\n", c.numeroConta);
+            printf("Nome: %s\n", c.nome);
+            printf("Saldo: %.2f\n", c.saldo);
+        }
+    }
+}
+
+int main() {
+
+    int opcao;
+    FILE *fp;
+
+    do {
+
+        printf("\n=========== MENU ===========\n");
+        printf("1 - Cadastrar cliente\n");
+        printf("2 - Consultar cliente\n");
+        printf("3 - Atualizar saldo\n");
+        printf("4 - Encerrar conta\n");
+        printf("5 - Listar clientes\n");
+        printf("6 - Reiniciar leitura com rewind()\n");
+        printf("7 - Sair\n");
+        printf("Opcao: ");
+
+        scanf("%d", &opcao);
+
+        switch(opcao) {
+
+            case 1:
+                cadastrarCliente();
+                break;
+
+            case 2:
+                consultarCliente();
+                break;
+
+            case 3:
+                atualizarSaldo();
+                break;
+
+            case 4:
+                removerCliente();
+                break;
+
+            case 5:
+
+                fp = fopen(ARQUIVO, "rb");
+
+                if (fp == NULL) {
+                    printf("Arquivo inexistente.\n");
+                    break;
+                }
+
+                listarClientes(fp);
+
+                fclose(fp);
+
+                break;
+
+            case 6:
+
+                fp = fopen(ARQUIVO, "rb");
+
+                if (fp == NULL) {
+                    printf("Arquivo inexistente.\n");
+                    break;
+                }
+
+                rewind(fp);
+
+                printf("Leitura reiniciada.\n");
+
+                listarClientes(fp);
+
+                fclose(fp);
+
+                break;
+
+            case 7:
+                printf("Encerrando sistema...\n");
+                break;
+
+            default:
+                printf("Opcao invalida.\n");
+        }
+
+    } while (opcao != 7);
+
+    return 0;
+}
+```
